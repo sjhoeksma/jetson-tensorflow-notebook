@@ -1,5 +1,5 @@
 # https://catalog.ngc.nvidia.com/orgs/nvidia/containers/l4t-tensorflow
-FROM nvcr.io/nvidia/l4t-tensorflow:r32.7.1-tf2.7-py3
+FROM --platform=linux/arm64 nvcr.io/nvidia/l4t-tensorflow:r32.7.1-tf2.7-py3
 
 ARG NB_USER="jovyan"
 ARG NB_UID="1000"
@@ -19,6 +19,7 @@ RUN apt-get update --yes && \
     #   the ubuntu base image is rebuilt too seldom sometimes (less than once a month)
     apt-get upgrade --yes && \
     apt-get install --yes --no-install-recommends \
+    apt-utils \
     ca-certificates \
     fonts-liberation \
     locales \
@@ -30,14 +31,23 @@ RUN apt-get update --yes && \
     #   we use `run-one-constantly` to support `RESTARTABLE` option
     run-one \
     sudo \
-    # - tini is installed as a helpful container entrypoint that reaps zombie
-    #   processes and such of the actual executable we want to start, see
-    #   https://github.com/krallin/tini#why-tini for details.
-    tini \
     wget && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
+
+#   tini is installed as a helpful container entrypoint that reaps zombie
+#   processes and such of the actual executable we want to start, see
+#   https://github.com/krallin/tini#why-tini for details.
+RUN ARCH="" && \
+    case $(uname -m) in \
+        i386)   ARCH="386" ;; \
+        i686)   ARCH="386" ;; \
+        x86_64) ARCH="amd64" ;; \
+        aarch64) ARCH="arm64" ;; \
+        arm)    dpkg --print-architecture | grep -q "arm64" && ARCH="arm64" || ARCH="arm" ;; \
+    esac && \
+    curl -fL https://github.com/krallin/tini/releases/download/v0.19.0/tini-${ARCH} -o /bin/tini && chmod +x /bin/tini
 
 # Configure environment
 ENV CONDA_DIR=/opt/conda \
