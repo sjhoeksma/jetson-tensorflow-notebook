@@ -1,0 +1,6 @@
+version: '3'
+
+services:
+  l4t-tensorflow-notebook:
+    build: .
+    image: 3pidev/l4t-tensorflow-notebook:v1.0.4
